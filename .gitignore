@@ -1,0 +1,6 @@
+.venv/
+__pycache__/
+*.pyc
+.hotword_cache.json
+*.log
+.DS_Store

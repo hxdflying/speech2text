@@ -1,0 +1,141 @@
+:root {
+  --bg: #f3f5f7;
+  --panel: #ffffff;
+  --text: #1a202c;
+  --muted: #5f6b7a;
+  --primary: #00764a;
+  --primary-strong: #005d3a;
+  --border: #d8e0e8;
+  --danger: #b3261e;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: radial-gradient(circle at top right, #e7fff4 0%, var(--bg) 45%);
+  color: var(--text);
+}
+
+.page {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 24px;
+  display: grid;
+  gap: 16px;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
+}
+
+h1,
+h2 {
+  margin-top: 0;
+}
+
+.hint {
+  color: var(--muted);
+}
+
+form {
+  display: grid;
+  gap: 12px;
+}
+
+label {
+  display: grid;
+  gap: 6px;
+  font-weight: 600;
+}
+
+input,
+select,
+button {
+  font: inherit;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+button {
+  border: none;
+  background: var(--primary);
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+button:hover {
+  background: var(--primary-strong);
+}
+
+.status {
+  margin: 10px 0 0;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+.status.idle {
+  background: #eef2f6;
+  color: #4d5b6a;
+}
+
+.status.loading {
+  background: #fef5e5;
+  color: #9a6a00;
+}
+
+.status.success {
+  background: #e8f8ef;
+  color: #0f6b3e;
+}
+
+.status.error {
+  background: #fdeceb;
+  color: var(--danger);
+}
+
+.output {
+  min-height: 96px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: #0d1117;
+  color: #d8f7dc;
+  border-radius: 8px;
+  padding: 12px;
+  overflow-x: auto;
+}
+
+.hotword-card {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.hotword-card + .hotword-card {
+  margin-top: 10px;
+}
+
+.hotword-card p {
+  margin: 6px 0;
+  line-height: 1.5;
+}
+
+.error {
+  color: var(--danger);
+}
+
+@media (max-width: 768px) {
+  .page {
+    padding: 14px;
+  }
+}

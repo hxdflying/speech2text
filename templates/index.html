@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Medical ASR Demo</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+  <main class="page">
+    <section class="panel">
+      <h1>Medical Speech To Text Demo</h1>
+      <p class="hint">
+        Model: <code>{{ model_name }}</code> | Select a hotword list and upload audio.
+      </p>
+      <form id="asr-form">
+        <label>
+          Medical domain
+          <select name="specialty" required>
+            <option value="pediatrics">Pediatrics (儿科)</option>
+            <option value="surgery">Surgery (外科)</option>
+          </select>
+        </label>
+        <label>
+          Sample rate
+          <input type="number" name="sample_rate" value="16000" min="8000" step="1000" required>
+        </label>
+        <label>
+          Audio file
+          <input type="file" name="audio" accept=".wav,.pcm,.mp3,.amr,.aac,.m4a,.ogg,.opus,.flac,audio/*" required>
+        </label>
+        <button type="submit">Transcribe</button>
+      </form>
+      <p id="status" class="status idle">Idle</p>
+    </section>
+
+    <section class="panel">
+      <h2>Transcript</h2>
+      <pre id="transcript" class="output"></pre>
+    </section>
+
+    <section class="panel">
+      <h2>Hotword Lists</h2>
+      <div id="hotwords"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Raw API Result</h2>
+      <pre id="raw-result" class="output"></pre>
+    </section>
+  </main>
+
+  <script>
+    const form = document.getElementById("asr-form");
+    const statusEl = document.getElementById("status");
+    const transcriptEl = document.getElementById("transcript");
+    const rawResultEl = document.getElementById("raw-result");
+    const hotwordsEl = document.getElementById("hotwords");
+    let apiBase = "";
+
+    const fallbackApiBases = [
+      "",
+      "http://127.0.0.1:8000",
+      "http://localhost:8000",
+      "http://127.0.0.1:8001",
+      "http://localhost:8001",
+    ];
+
+    function setStatus(message, type) {
+      statusEl.textContent = message;
+      statusEl.className = "status " + type;
+    }
+
+    function renderHotwords(data) {
+      const fragments = [];
+      for (const [domain, words] of Object.entries(data.sets)) {
+        const vocab = data.vocabulary[domain] || {};
+        const source = vocab.source || "unknown";
+        const vocabId = vocab.vocabulary_id || "(not created yet)";
+        fragments.push(
+          `<article class="hotword-card">
+            <h3>${domain}</h3>
+            <p><strong>vocabulary_id:</strong> <code>${vocabId}</code></p>
+            <p><strong>source:</strong> ${source}</p>
+            <p>${words.join(" / ")}</p>
+          </article>`
+        );
+      }
+      hotwordsEl.innerHTML = fragments.join("");
+    }
+
+    function uniq(arr) {
+      return [...new Set(arr)];
+    }
+
+    async function fetchApi(path, options = {}) {
+      const bases = uniq([apiBase, ...fallbackApiBases]);
+      let lastError = null;
+      const tried = [];
+      for (const base of bases) {
+        const url = `${base}${path}`;
+        try {
+          const response = await fetch(url, options);
+          apiBase = base;
+          return response;
+        } catch (error) {
+          lastError = error;
+          tried.push(url);
+        }
+      }
+      const detail = lastError ? ` ${lastError.message}` : "";
+      throw new Error(`Failed to fetch API.${detail} Tried: ${tried.join(", ")}`);
+    }
+
+    async function parseResponse(response) {
+      const text = await response.text();
+      let data = null;
+      if (text) {
+        try {
+          data = JSON.parse(text);
+        } catch (_) {
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${text.slice(0, 200)}`);
+          }
+          throw new Error(`Invalid JSON response: ${text.slice(0, 200)}`);
+        }
+      }
+      if (!response.ok) {
+        const message = (data && data.error) ? data.error : `HTTP ${response.status}`;
+        throw new Error(message);
+      }
+      return data || {};
+    }
+
+    async function loadHotwords() {
+      try {
+        const response = await fetchApi("/api/hotwords");
+        const data = await parseResponse(response);
+        renderHotwords(data);
+      } catch (error) {
+        hotwordsEl.innerHTML = `<p class="error">Failed to load hotwords: ${error.message}</p>`;
+      }
+    }
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      transcriptEl.textContent = "";
+      rawResultEl.textContent = "";
+      setStatus("Calling ASR API...", "loading");
+
+      try {
+        const formData = new FormData(form);
+        const response = await fetchApi("/api/transcribe", {
+          method: "POST",
+          body: formData,
+        });
+        const data = await parseResponse(response);
+        transcriptEl.textContent = data.transcript || "";
+        rawResultEl.textContent = JSON.stringify(data.raw_result, null, 2);
+        setStatus("Transcription completed.", "success");
+        loadHotwords();
+      } catch (error) {
+        setStatus(error.message, "error");
+      }
+    });
+
+    loadHotwords();
+  </script>
+</body>
+</html>
